@@ -8,10 +8,11 @@ interface Category {
 }
 
 interface AddActivityFormProps {
+  date: string;
   onActivityAdded: () => void;
 }
 
-const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) => {
+const AddActivityForm: React.FC<AddActivityFormProps> = ({ date, onActivityAdded }) => {
   const [categories, setCategories] = useState<Category[]>([]);
   const [formData, setFormData] = useState({
     category: '',
@@ -25,23 +26,21 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  const today = new Date().toISOString().split('T')[0];
-
   useEffect(() => {
     fetchCategories();
   }, []);
 
   useEffect(() => {
     if (durationMode === 'calculated' && formData.startTime && formData.endTime) {
-      const start = new Date(`${today}T${formData.startTime}`);
-      const end = new Date(`${today}T${formData.endTime}`);
+      const start = new Date(`${date}T${formData.startTime}`);
+      const end = new Date(`${date}T${formData.endTime}`);
       const diffMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
       
       if (diffMinutes > 0) {
         setFormData(prev => ({ ...prev, duration: diffMinutes.toString() }));
       }
     }
-  }, [formData.startTime, formData.endTime, durationMode, today]);
+  }, [formData.startTime, formData.endTime, durationMode, date]);
 
   const fetchCategories = async () => {
     try {
@@ -67,7 +66,7 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
 
     try {
       const activityData: CreateActivityData = {
-        date: today,
+        date: date,
         category: formData.category,
         title: formData.title,
         duration: duration,
@@ -113,7 +112,7 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 max-w-2xl mx-auto mb-6">
-      <h2 className="text-2xl font-bold text-gray-800 mb-5">Add Today's Activity</h2>
+      <h2 className="text-2xl font-bold text-gray-800 mb-5">Add Activity</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
@@ -256,7 +255,7 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
 
         <div className="bg-gray-50 rounded-md p-3">
           <small className="text-gray-600">
-            📅 Date: {new Date(today).toLocaleDateString('en-US', { 
+            📅 Date: {new Date(date).toLocaleDateString('en-US', { 
               weekday: 'long', 
               year: 'numeric', 
               month: 'long', 
