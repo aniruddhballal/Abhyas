@@ -15,8 +15,11 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
     category: '',
     title: '',
     duration: '',
+    startTime: '',
+    endTime: '',
     description: ''
   });
+  const [durationMode, setDurationMode] = useState<'manual' | 'calculated'>('manual');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
 
@@ -25,6 +28,18 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
   useEffect(() => {
     fetchCategories();
   }, []);
+
+  useEffect(() => {
+    if (durationMode === 'calculated' && formData.startTime && formData.endTime) {
+      const start = new Date(`${today}T${formData.startTime}`);
+      const end = new Date(`${today}T${formData.endTime}`);
+      const diffMinutes = Math.round((end.getTime() - start.getTime()) / 60000);
+      
+      if (diffMinutes > 0) {
+        setFormData(prev => ({ ...prev, duration: diffMinutes.toString() }));
+      }
+    }
+  }, [formData.startTime, formData.endTime, durationMode, today]);
 
   const fetchCategories = async () => {
     try {
@@ -39,6 +54,14 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validate duration
+    const duration = parseInt(formData.duration);
+    if (!duration || duration <= 0) {
+      setError('Please provide a valid duration');
+      return;
+    }
+
     setIsSubmitting(true);
 
     try {
@@ -51,7 +74,7 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
           date: today,
           category: formData.category,
           title: formData.title,
-          duration: parseInt(formData.duration),
+          duration: duration,
           description: formData.description
         }),
       });
@@ -65,6 +88,8 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
         category: '',
         title: '',
         duration: '',
+        startTime: '',
+        endTime: '',
         description: ''
       });
       
@@ -81,6 +106,17 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
       ...formData,
       [e.target.name]: e.target.value
     });
+  };
+
+  const handleDurationModeChange = (mode: 'manual' | 'calculated') => {
+    setDurationMode(mode);
+    // Clear duration and time fields when switching modes
+    setFormData(prev => ({
+      ...prev,
+      duration: '',
+      startTime: '',
+      endTime: ''
+    }));
   };
 
   return (
@@ -125,20 +161,90 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
         </div>
 
         <div>
-          <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">
-            Duration (minutes) *
+          <label className="block text-sm font-medium text-gray-700 mb-3">
+            Duration Input Method *
           </label>
-          <input
-            type="number"
-            id="duration"
-            name="duration"
-            value={formData.duration}
-            onChange={handleChange}
-            placeholder="e.g., 30"
-            min="1"
-            required
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-          />
+          <div className="flex gap-4 mb-4">
+            <button
+              type="button"
+              onClick={() => handleDurationModeChange('manual')}
+              className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+                durationMode === 'manual'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Enter Minutes
+            </button>
+            <button
+              type="button"
+              onClick={() => handleDurationModeChange('calculated')}
+              className={`flex-1 px-4 py-2 rounded-md font-medium transition-colors ${
+                durationMode === 'calculated'
+                  ? 'bg-green-500 text-white'
+                  : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              }`}
+            >
+              Start/End Time
+            </button>
+          </div>
+
+          {durationMode === 'manual' ? (
+            <div>
+              <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">
+                Duration (minutes) *
+              </label>
+              <input
+                type="number"
+                id="duration"
+                name="duration"
+                value={formData.duration}
+                onChange={handleChange}
+                placeholder="e.g., 30"
+                min="1"
+                required
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="startTime" className="block text-sm font-medium text-gray-700 mb-1">
+                  Start Time *
+                </label>
+                <input
+                  type="time"
+                  id="startTime"
+                  name="startTime"
+                  value={formData.startTime}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label htmlFor="endTime" className="block text-sm font-medium text-gray-700 mb-1">
+                  End Time *
+                </label>
+                <input
+                  type="time"
+                  id="endTime"
+                  name="endTime"
+                  value={formData.endTime}
+                  onChange={handleChange}
+                  required
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                />
+              </div>
+              {formData.startTime && formData.endTime && formData.duration && (
+                <div className="col-span-2 bg-blue-50 rounded-md p-3">
+                  <small className="text-blue-700 font-medium">
+                    Calculated Duration: {formData.duration} minutes ({Math.floor(parseInt(formData.duration) / 60)}h {parseInt(formData.duration) % 60}m)
+                  </small>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div>
