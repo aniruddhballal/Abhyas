@@ -25,6 +25,13 @@ const Daily = ({ selectedDate, dateString, onBack }: { selectedDate: Date; dateS
     });
   };
 
+  // Check if the selected date is today (in IST or local timezone)
+  const isToday = () => {
+    const today = new Date();
+    const todayString = today.toISOString().split('T')[0];
+    return dateString === todayString;
+  };
+
   const fetchActivities = async () => {
     setLoading(true);
     setError(null);
@@ -104,9 +111,22 @@ const Daily = ({ selectedDate, dateString, onBack }: { selectedDate: Date; dateS
             </div>
           </div>
 
-          <div className="mb-6">
-            <AddActivityForm date={dateString} onActivityAdded={fetchActivities} />
-          </div>
+          {/* Only show Add Activity form if viewing today's date */}
+          {isToday() && (
+            <div className="mb-6">
+              <AddActivityForm onActivityAdded={fetchActivities} />
+            </div>
+          )}
+
+          {/* Show info message if not today */}
+          {!isToday() && (
+            <div className="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4 text-blue-700">
+              <p className="text-sm">
+                📅 You're viewing a {new Date(dateString) > new Date() ? 'future' : 'past'} date. 
+                Activities can only be added for today's date.
+              </p>
+            </div>
+          )}
 
           <div className="space-y-4">
             <h2 className="text-xl font-semibold text-gray-700 mb-4">Activities</h2>
