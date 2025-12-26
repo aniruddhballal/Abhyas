@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Cpu, HardDrive } from 'lucide-react';
 
 const DateNavigator = () => {
   const navigate = useNavigate();
@@ -162,13 +162,22 @@ const DateNavigator = () => {
         })}
       </div>
 
-      <button
-        onClick={() => navigate('/scratchpad')}
-        className="mt-6 w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
-      >
-        <FileText size={20} />
-        Scratchpad
-      </button>
+      <div className="mt-6 grid grid-cols-2 gap-4">
+        <button
+          onClick={() => navigate('/ram')}
+          className="py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+        >
+          <Cpu size={20} />
+          RAM
+        </button>
+        <button
+          onClick={() => navigate('/cache')}
+          className="py-3 px-4 bg-green-500 hover:bg-green-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+        >
+          <HardDrive size={20} />
+          Cache
+        </button>
+      </div>
 
     </div>
   );

@@ -1,14 +1,16 @@
 import { Routes, Route } from 'react-router-dom'
 import DateNavigator from './components/DateNavigator'
+import RAM from './components/RAM.tsx'
+import Cache from './components/Cache'
 import DailyWrapper from './components/DailyWrapper'
-import ScratchPad from './components/ScratchPad'
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<DateNavigator />} />
       <Route path="/daily/:date" element={<DailyWrapper />} />
-      <Route path="/scratchpad" element={<ScratchPad />} />
+      <Route path="/ram" element={<RAM />} />
+      <Route path="/cache" element={<Cache />} />
     </Routes>
   )
 }

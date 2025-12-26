@@ -1,4 +1,4 @@
-const ScratchPad = () => {
+const RAM = () => {
   return (
     <div className="w-full h-screen flex items-center justify-center bg-gray-50">
       <div className="text-center">
@@ -8,4 +8,4 @@ const ScratchPad = () => {
   );
 };
 
-export default ScratchPad;
+export default RAM;
