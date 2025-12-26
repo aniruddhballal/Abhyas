@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Trash2, ArrowLeft } from 'lucide-react';
 
 interface CacheEntry {
   _id: string;
@@ -14,6 +15,7 @@ interface EntryPosition {
 }
 
 const Cache = () => {
+  const navigate = useNavigate();
   const [entries, setEntries] = useState<(CacheEntry & EntryPosition)[]>([]);
   const [isCreating, setIsCreating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -207,6 +209,14 @@ const Cache = () => {
       onMouseUp={handleMouseUp}
       style={{ cursor: dragging ? 'grabbing' : 'pointer' }}
     >
+      <button
+        onClick={() => navigate('/')}
+        className="absolute top-6 left-6 flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors bg-white px-4 py-2 rounded-lg shadow-md z-10"
+      >
+        <ArrowLeft size={20} />
+        <span>Back to Calendar</span>
+      </button>
+
       {isLoading && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <p className="text-xl text-gray-500">Loading entries...</p>
