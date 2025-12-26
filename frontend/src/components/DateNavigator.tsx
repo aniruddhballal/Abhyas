@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 
 const DateNavigator = () => {
   const navigate = useNavigate();
@@ -161,6 +161,15 @@ const DateNavigator = () => {
           );
         })}
       </div>
+
+      <button
+        onClick={() => navigate('/scratchpad')}
+        className="mt-6 w-full py-3 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
+      >
+        <FileText size={20} />
+        Scratchpad
+      </button>
+
     </div>
   );
 };
