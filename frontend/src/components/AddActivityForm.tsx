@@ -82,7 +82,10 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
         category: formData.category,
         title: formData.title,
         duration: duration,
-        description: formData.description
+        description: formData.description,
+        // Include start/end times if they were entered
+        ...(formData.startTime && { startTime: formData.startTime }),
+        ...(formData.endTime && { endTime: formData.endTime })
       };
 
       await createActivity(activityData);

@@ -34,7 +34,7 @@ router.get('/meta/categories', (_req, res) => {
 // Add a new activity (only for today's date in IST)
 router.post('/', async (req, res) => {
   try {
-    const { date, category, title, description, duration } = req.body;
+    const { date, category, title, description, duration, startTime, endTime } = req.body;
     
     // Validate that the date is today IN IST TIMEZONE
     const today = new Date().toLocaleDateString('en-CA', { 
@@ -70,6 +70,8 @@ router.post('/', async (req, res) => {
       title,
       description: description || '',
       duration: Number(duration),
+      startTime: startTime || undefined, // Include if provided
+      endTime: endTime || undefined, // Include if provided
       timestamp: new Date().toISOString()
     });
     

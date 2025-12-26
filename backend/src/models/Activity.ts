@@ -14,6 +14,8 @@ export interface IActivity extends Document {
   title: string;
   description?: string;
   duration: number; // in minutes
+  startTime?: string; // HH:MM format (optional)
+  endTime?: string; // HH:MM format (optional)
   timestamp: string;
 }
 
@@ -27,6 +29,8 @@ const ActivitySchema: Schema = new Schema({
   title: { type: String, required: true },
   description: { type: String },
   duration: { type: Number, required: true, min: 1 },
+  startTime: { type: String }, // Optional
+  endTime: { type: String }, // Optional
   timestamp: { type: String, required: true }
 });
 

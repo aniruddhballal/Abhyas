@@ -16,13 +16,8 @@ export interface Activity {
   completed: boolean;
   category?: string;
   duration?: number;
-}
-
-export interface DailyData {
-  date: string;
-  activities: Activity[];
-  totalActivities: number;
-  completedActivities: number;
+  startTime?: string; // Add this
+  endTime?: string; // Add this
 }
 
 export interface CreateActivityData {
@@ -31,7 +26,16 @@ export interface CreateActivityData {
   description: string;
   category?: string;
   duration?: number;
+  startTime?: string; // Add this
+  endTime?: string; // Add this
   completed?: boolean;
+}
+
+export interface DailyData {
+  date: string;
+  activities: Activity[];
+  totalActivities: number;
+  completedActivities: number;
 }
 
 // Get activities for a specific date

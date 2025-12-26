@@ -239,9 +239,16 @@ const Daily = ({ selectedDate, dateString, onBack }: { selectedDate: Date; dateS
                           <h3 className="font-semibold text-gray-800">
                             {activity.title}
                           </h3>
-                          <span className="text-sm font-medium text-gray-600">
-                            {activity.duration ? `${Math.floor(activity.duration / 60)}h ${activity.duration % 60}m` : ''}
-                          </span>
+                          <div className="text-right">
+                            {activity.startTime && activity.endTime && (
+                              <div className="text-xs text-gray-500 mb-1">
+                                {activity.startTime} - {activity.endTime}
+                              </div>
+                            )}
+                            <span className="text-sm font-medium text-gray-600">
+                              {activity.duration ? `${Math.floor(activity.duration / 60)}h ${activity.duration % 60}m` : ''}
+                            </span>
+                          </div>
                         </div>
                         {activity.category && (
                           <span 
