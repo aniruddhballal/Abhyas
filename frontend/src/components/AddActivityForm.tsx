@@ -67,9 +67,25 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
     e.preventDefault();
     setError('');
 
-    // Validate duration
-    const duration = parseInt(formData.duration);
-    if (!duration || duration <= 0) {
+    // Convert duration from HH:MM to minutes
+    let durationInMinutes = 0;
+    
+    if (durationMode === 'manual') {
+      // Parse HH:MM format
+      const timeParts = formData.duration.split(':');
+      if (timeParts.length !== 2) {
+        setError('Please enter duration in HH:MM format');
+        return;
+      }
+      const hours = parseInt(timeParts[0]) || 0;
+      const minutes = parseInt(timeParts[1]) || 0;
+      durationInMinutes = hours * 60 + minutes;
+    } else {
+      // Already calculated from start/end time
+      durationInMinutes = parseInt(formData.duration);
+    }
+
+    if (!durationInMinutes || durationInMinutes <= 0) {
       setError('Please provide a valid duration');
       return;
     }
@@ -81,7 +97,7 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
         date: today,
         category: formData.category,
         title: formData.title,
-        duration: duration,
+        duration: durationInMinutes,
         description: formData.description,
         // Include start/end times if they were entered
         ...(formData.startTime && { startTime: formData.startTime }),
@@ -192,7 +208,7 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
                   : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
               }`}
             >
-              Enter Minutes
+              Enter HH:MM
             </button>
             <button
               type="button"
@@ -210,19 +226,20 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
           {durationMode === 'manual' ? (
             <div>
               <label htmlFor="duration" className="block text-sm font-medium text-gray-700 mb-1">
-                Duration (minutes) *
+                Duration (HH:MM) *
               </label>
               <input
-                type="number"
+                type="text"
                 id="duration"
                 name="duration"
                 value={formData.duration}
                 onChange={handleChange}
-                placeholder="e.g., 30"
-                min="1"
+                placeholder="01:30"
+                pattern="[0-9]{1,2}:[0-5][0-9]"
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
               />
+              <small className="text-gray-500 mt-1 block">Enter hours and minutes (e.g., 01:30 for 1 hour 30 minutes)</small>
             </div>
           ) : (
             <div className="grid grid-cols-2 gap-4">
