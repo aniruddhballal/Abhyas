@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Trash2 } from 'lucide-react';
 
 interface CacheEntry {
@@ -16,6 +16,7 @@ interface EntryPosition {
 const Cache = () => {
   const [entries, setEntries] = useState<(CacheEntry & EntryPosition)[]>([]);
   const [isCreating, setIsCreating] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const [dragging, setDragging] = useState<string | null>(null);
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
 
@@ -36,6 +37,33 @@ const Cache = () => {
     });
     return response.json();
   };
+
+  // Fetch all entries on component mount
+  useEffect(() => {
+    const fetchEntries = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/cache-entries`);
+        const data = await response.json();
+        
+        // Assign random positions to existing entries
+        const entriesWithPositions = data.map((entry: CacheEntry, index: number) => ({
+          ...entry,
+          x: 200 + (index % 5) * 350, // Spread horizontally
+          y: 200 + Math.floor(index / 5) * 300 // Spread vertically
+        }));
+        
+        setEntries(entriesWithPositions);
+        console.log('Fetched cache entries:', entriesWithPositions);
+      } catch (error) {
+        console.error('Error fetching cache entries:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEntries();
+  }, []);
 
   const handleClick = async (e: React.MouseEvent<HTMLDivElement>) => {
     const x = e.clientX;
@@ -179,7 +207,13 @@ const Cache = () => {
       onMouseUp={handleMouseUp}
       style={{ cursor: dragging ? 'grabbing' : 'pointer' }}
     >
-      {entries.length === 0 && !isCreating && (
+      {isLoading && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <p className="text-xl text-gray-500">Loading entries...</p>
+        </div>
+      )}
+
+      {!isLoading && entries.length === 0 && !isCreating && (
         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
           <p className="text-2xl text-gray-400">Click/tap to jot</p>
         </div>
