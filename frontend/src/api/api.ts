@@ -62,4 +62,36 @@ export const getCategories = async () => {
   return response.data;
 };
 
+// Add this interface after the Activity interfaces
+export interface CacheEntry {
+  _id: string;
+  timestamp: Date;
+  title: string;
+  body: string;
+}
+
+export interface CreateCacheEntryData {
+  title?: string;
+  body?: string;
+}
+
+// Add these functions at the end, before export default api
+// Create a new cache entry
+export const createCacheEntry = async (data: CreateCacheEntryData = {}): Promise<CacheEntry> => {
+  const response = await api.post<CacheEntry>('/cache-entries', data);
+  return response.data;
+};
+
+// Get all cache entries
+export const getCacheEntries = async (): Promise<CacheEntry[]> => {
+  const response = await api.get<CacheEntry[]>('/cache-entries');
+  return response.data;
+};
+
+// Update a cache entry
+export const updateCacheEntry = async (id: string, data: Partial<CreateCacheEntryData>): Promise<CacheEntry> => {
+  const response = await api.put<CacheEntry>(`/cache-entries/${id}`, data);
+  return response.data;
+};
+
 export default api;
