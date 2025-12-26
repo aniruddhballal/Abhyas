@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { createCacheEntry } from '../api/api';
+import { createCacheEntry, updateCacheEntry } from '../api/api';
 import type { CacheEntry } from '../api/api';
 import { Trash2 } from 'lucide-react';
 
@@ -56,6 +56,30 @@ const Cache = () => {
     ));
   };
 
+  const handleTitleBlur = async (id: string) => {
+    const entry = entries.find(e => e._id === id);
+    if (!entry) return;
+
+    try {
+      await updateCacheEntry(id, { title: entry.title });
+      console.log('Updated title for entry:', id);
+    } catch (error) {
+      console.error('Error updating title:', error);
+    }
+  };
+
+  const handleBodyBlur = async (id: string) => {
+    const entry = entries.find(e => e._id === id);
+    if (!entry) return;
+
+    try {
+      await updateCacheEntry(id, { body: entry.body });
+      console.log('Updated body for entry:', id);
+    } catch (error) {
+      console.error('Error updating body:', error);
+    }
+  };
+
   const handleDelete = async (id: string, e: React.MouseEvent) => {
     e.stopPropagation();
     
@@ -64,7 +88,7 @@ const Cache = () => {
     if (!confirmed) return;
 
     try {
-      // Call the delete API (we'll add this to api.ts)
+      // Call the delete API
       const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/cache-entries/${id}`, {
         method: 'DELETE',
         headers: {
@@ -150,6 +174,7 @@ const Cache = () => {
               type="text"
               value={entry.title}
               onChange={(e) => handleTitleChange(entry._id, e.target.value)}
+              onBlur={() => handleTitleBlur(entry._id)}
               placeholder="Enter title..."
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               onClick={(e) => e.stopPropagation()}
@@ -163,6 +188,7 @@ const Cache = () => {
             <textarea
               value={entry.body}
               onChange={(e) => handleBodyChange(entry._id, e.target.value)}
+              onBlur={() => handleBodyBlur(entry._id)}
               placeholder="Enter body text..."
               rows={4}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
