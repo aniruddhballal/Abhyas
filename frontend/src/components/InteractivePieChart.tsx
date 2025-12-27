@@ -1,13 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Sector } from 'recharts';
-import { Eye, EyeOff } from 'lucide-react';
+import { Eye, EyeOff, ArrowLeft } from 'lucide-react';
 import type { Activity } from '../types/activity';
 import { getCategoryColor } from '../utils/categoryColors';
-
-interface InteractivePieChartProps {
-  activities: Activity[];
-  categories: string[];
-}
 
 interface ChartData {
   name: string;
@@ -16,16 +11,34 @@ interface ChartData {
   color: string;
   category?: string;
   subcategory?: string;
-  [key: string]: any; // Add index signature for Recharts compatibility
+  activityId?: string;
+  [key: string]: any;
+}
+
+type DrillLevel = 'category' | 'subcategory' | 'activity';
+
+interface InteractivePieChartProps {
+  activities: Activity[];
+  categories: string[];
 }
 
 const InteractivePieChart = ({ activities, categories }: InteractivePieChartProps) => {
-  const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
-  const [activeIndex, setActiveIndex] = useState<number | null>(null);
-  const [showingSubcategories, setShowingSubcategories] = useState(false);
+  const [drillLevel, setDrillLevel] = useState<DrillLevel>('category');
   const [drilldownCategory, setDrilldownCategory] = useState<string | null>(null);
+  const [drilldownSubcategory, setDrilldownSubcategory] = useState<string | null>(null);
+  
+  const [hiddenCategories, setHiddenCategories] = useState<Set<string>>(new Set());
+  const [hiddenSubcategories, setHiddenSubcategories] = useState<Set<string>>(new Set());
+  const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  // Get category data excluding hidden categories
+  // Check if a category has any activities with subcategories
+  const hasSubcategories = (category: string): boolean => {
+    return activities.some(
+      activity => activity.category === category && activity.subcategory
+    );
+  };
+
+  // Get category-level data
   const getCategoryData = (): ChartData[] => {
     if (!activities || activities.length === 0) return [];
 
@@ -52,33 +65,32 @@ const InteractivePieChart = ({ activities, categories }: InteractivePieChartProp
     });
   };
 
-  // Get subcategory data for a specific category
+  // Get subcategory-level data for a specific category
   const getSubcategoryData = (category: string): ChartData[] => {
     if (!activities || activities.length === 0) return [];
 
     const subcategoryTotals: Record<string, number> = {};
     
     activities
-      .filter(activity => activity.category === category)
+      .filter(activity => activity.category === category && activity.subcategory)
       .forEach(activity => {
-        // Use title as subcategory if no explicit subcategory field exists
-        const subcategory = activity.title || 'Untitled';
-        const duration = activity.duration || 0;
-        subcategoryTotals[subcategory] = (subcategoryTotals[subcategory] || 0) + duration;
+        const subcategory = activity.subcategory!;
+        if (!hiddenSubcategories.has(subcategory)) {
+          const duration = activity.duration || 0;
+          subcategoryTotals[subcategory] = (subcategoryTotals[subcategory] || 0) + duration;
+        }
       });
 
-    // Generate colors for subcategories (variations of the main category color)
     const baseColor = getCategoryColor(category);
     const entries = Object.entries(subcategoryTotals);
     
     return entries.map(([subcategory, minutes], index) => {
-      // Create color variations
+      // Create color variations for subcategories
       const hue = parseInt(baseColor.slice(1, 3), 16);
       const sat = parseInt(baseColor.slice(3, 5), 16);
       const light = parseInt(baseColor.slice(5, 7), 16);
       
-      // Vary the lightness for different subcategories
-      const variation = Math.floor((index * 30) % 100) - 30;
+      const variation = Math.floor((index * 40) % 80) - 40;
       const newLight = Math.max(50, Math.min(200, light + variation));
       const variedColor = `#${hue.toString(16).padStart(2, '0')}${sat.toString(16).padStart(2, '0')}${newLight.toString(16).padStart(2, '0')}`;
 
@@ -86,7 +98,7 @@ const InteractivePieChart = ({ activities, categories }: InteractivePieChartProp
       const mins = minutes % 60;
 
       return {
-        name: subcategory,
+        name: subcategory.charAt(0).toUpperCase() + subcategory.slice(1),
         value: minutes,
         hours: `${hours}:${mins.toString().padStart(2, '0')}`,
         color: variedColor,
@@ -95,44 +107,107 @@ const InteractivePieChart = ({ activities, categories }: InteractivePieChartProp
     });
   };
 
-  const categoryData = getCategoryData();
-  const visibleCategories = categoryData.filter(cat => !hiddenCategories.has(cat.category || ''));
+  // Get activity-level data (individual activities)
+  const getActivityData = (category: string, subcategory?: string): ChartData[] => {
+    if (!activities || activities.length === 0) return [];
 
-  // Check if we should show subcategories (only one category left)
-  const shouldShowSubcategories = visibleCategories.length === 1;
-  
-  // Get the data to display (either categories or subcategories)
-  const displayData: ChartData[] = shouldShowSubcategories && visibleCategories.length > 0
-    ? getSubcategoryData(visibleCategories[0].category || '')
-    : visibleCategories;
+    const filteredActivities = activities.filter(activity => {
+      if (activity.category !== category) return false;
+      if (subcategory && activity.subcategory !== subcategory) return false;
+      return true;
+    });
 
-  // Update drill-down state when switching to subcategories
-  if (shouldShowSubcategories && !showingSubcategories && visibleCategories.length > 0) {
-    setShowingSubcategories(true);
-    setDrilldownCategory(visibleCategories[0].category || null);
-  } else if (!shouldShowSubcategories && showingSubcategories) {
-    setShowingSubcategories(false);
-    setDrilldownCategory(null);
-  }
+    const baseColor = getCategoryColor(category);
+    
+    return filteredActivities.map((activity, index) => {
+      // Create color variations for activities
+      const hue = parseInt(baseColor.slice(1, 3), 16);
+      const sat = parseInt(baseColor.slice(3, 5), 16);
+      const light = parseInt(baseColor.slice(5, 7), 16);
+      
+      const variation = Math.floor((index * 30) % 100) - 30;
+      const newLight = Math.max(50, Math.min(200, light + variation));
+      const variedColor = `#${hue.toString(16).padStart(2, '0')}${sat.toString(16).padStart(2, '0')}${newLight.toString(16).padStart(2, '0')}`;
 
+      const minutes = activity.duration || 0;
+      const hours = Math.floor(minutes / 60);
+      const mins = minutes % 60;
+
+      return {
+        name: activity.title,
+        value: minutes,
+        hours: `${hours}:${mins.toString().padStart(2, '0')}`,
+        color: variedColor,
+        activityId: activity._id
+      };
+    });
+  };
+
+  // Determine what data to display based on drill level
+  const getDisplayData = (): ChartData[] => {
+    if (drillLevel === 'category') {
+      const categoryData = getCategoryData();
+      return categoryData.filter(cat => !hiddenCategories.has(cat.category || ''));
+    } else if (drillLevel === 'subcategory' && drilldownCategory) {
+      return getSubcategoryData(drilldownCategory);
+    } else if (drillLevel === 'activity' && drilldownCategory) {
+      return getActivityData(drilldownCategory, drilldownSubcategory || undefined);
+    }
+    return [];
+  };
+
+  const displayData = getDisplayData();
+
+  // Auto-drill logic
+  useEffect(() => {
+    if (drillLevel === 'category') {
+      const categoryData = getCategoryData();
+      const visibleCategories = categoryData.filter(cat => !hiddenCategories.has(cat.category || ''));
+      
+      if (visibleCategories.length === 1) {
+        const category = visibleCategories[0].category!;
+        setDrilldownCategory(category);
+        
+        if (hasSubcategories(category)) {
+          setDrillLevel('subcategory');
+        } else {
+          setDrillLevel('activity');
+        }
+      }
+    } else if (drillLevel === 'subcategory' && drilldownCategory) {
+      const subcategoryData = getSubcategoryData(drilldownCategory);
+      const visibleSubcategories = subcategoryData.filter(sub => !hiddenSubcategories.has(sub.subcategory || ''));
+      
+      if (visibleSubcategories.length === 1) {
+        setDrilldownSubcategory(visibleSubcategories[0].subcategory!);
+        setDrillLevel('activity');
+      }
+    }
+  }, [hiddenCategories, hiddenSubcategories, drillLevel, drilldownCategory]);
+
+  // Handle pie slice click
   const handlePieClick = (entry: any) => {
-    if (showingSubcategories) {
-      // If showing subcategories, don't do anything on click
+    if (drillLevel === 'activity') {
+      // At activity level, don't do anything on click
       return;
     }
 
-    // Show confirmation dialog
-    const categoryName = entry.name;
+    const itemName = entry.name;
     const shouldHide = window.confirm(
-      `Do you want to hide "${categoryName}" from the pie chart?\n\nThis will exclude all ${categoryName} activities from the visualization.`
+      `Do you want to hide "${itemName}" from the pie chart?`
     );
 
     if (shouldHide) {
-      setHiddenCategories(prev => new Set([...prev, entry.category]));
+      if (drillLevel === 'category') {
+        setHiddenCategories(prev => new Set([...prev, entry.category]));
+      } else if (drillLevel === 'subcategory') {
+        setHiddenSubcategories(prev => new Set([...prev, entry.subcategory]));
+      }
       setActiveIndex(null);
     }
   };
 
+  // Toggle category visibility
   const handleToggleCategory = (category: string) => {
     setHiddenCategories(prev => {
       const newSet = new Set(prev);
@@ -145,17 +220,45 @@ const InteractivePieChart = ({ activities, categories }: InteractivePieChartProp
     });
   };
 
-  const handleResetAll = () => {
-    setHiddenCategories(new Set());
-    setShowingSubcategories(false);
+  // Toggle subcategory visibility
+  const handleToggleSubcategory = (subcategory: string) => {
+    setHiddenSubcategories(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(subcategory)) {
+        newSet.delete(subcategory);
+      } else {
+        newSet.add(subcategory);
+      }
+      return newSet;
+    });
+  };
+
+  // Navigation handlers
+  const handleBackToCategories = () => {
+    setDrillLevel('category');
     setDrilldownCategory(null);
+    setDrilldownSubcategory(null);
+    setHiddenSubcategories(new Set());
+  };
+
+  const handleBackToSubcategories = () => {
+    setDrillLevel('subcategory');
+    setDrilldownSubcategory(null);
+  };
+
+  const handleResetAll = () => {
+    setDrillLevel('category');
+    setDrilldownCategory(null);
+    setDrilldownSubcategory(null);
+    setHiddenCategories(new Set());
+    setHiddenSubcategories(new Set());
     setActiveIndex(null);
   };
 
   // Custom label for pie slices
   const renderLabel = (props: any) => {
     const { percent, value } = props;
-    if (percent < 0.05) return null; // Don't show label for very small slices
+    if (percent < 0.05) return null;
     const totalMinutes = value;
     const hours = Math.floor(totalMinutes / 60);
     const minutes = totalMinutes % 60;
@@ -182,7 +285,19 @@ const InteractivePieChart = ({ activities, categories }: InteractivePieChartProp
     );
   };
 
-  if (displayData.length === 0) {
+  // Get breadcrumb path
+  const getBreadcrumb = () => {
+    const parts = [];
+    if (drillLevel !== 'category' && drilldownCategory) {
+      parts.push(drilldownCategory.charAt(0).toUpperCase() + drilldownCategory.slice(1));
+    }
+    if (drillLevel === 'activity' && drilldownSubcategory) {
+      parts.push(drilldownSubcategory.charAt(0).toUpperCase() + drilldownSubcategory.slice(1));
+    }
+    return parts.join(' → ');
+  };
+
+  if (displayData.length === 0 && drillLevel === 'category') {
     return (
       <div className="bg-gray-50 rounded-lg p-6">
         <div className="flex items-center justify-center h-[400px] text-gray-500">
@@ -194,119 +309,132 @@ const InteractivePieChart = ({ activities, categories }: InteractivePieChartProp
 
   return (
     <div className="bg-gray-50 rounded-lg p-6">
-      {/* Header with mode indicator */}
-      <div className="mb-4 flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-gray-700">
-            {showingSubcategories ? 'Activity Breakdown' : 'Category Distribution'}
-          </h3>
-          {showingSubcategories && drilldownCategory && (
-            <p className="text-sm text-gray-600 mt-1">
-              Showing activities in: {drilldownCategory.charAt(0).toUpperCase() + drilldownCategory.slice(1)}
-            </p>
+      {/* Header with navigation */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center gap-3">
+            {drillLevel !== 'category' && (
+              <button
+                onClick={drillLevel === 'activity' && drilldownSubcategory 
+                  ? handleBackToSubcategories 
+                  : handleBackToCategories}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-200 rounded-lg transition-colors"
+                title={drillLevel === 'activity' && drilldownSubcategory ? 'Back to Subcategories' : 'Back to Categories'}
+              >
+                <ArrowLeft size={20} />
+              </button>
+            )}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-700">
+                {drillLevel === 'category' && 'Category Distribution'}
+                {drillLevel === 'subcategory' && 'Subcategory Breakdown'}
+                {drillLevel === 'activity' && 'Activity Breakdown'}
+              </h3>
+              {drillLevel !== 'category' && (
+                <p className="text-sm text-gray-600 mt-1">
+                  {getBreadcrumb()}
+                </p>
+              )}
+            </div>
+          </div>
+          {(hiddenCategories.size > 0 || hiddenSubcategories.size > 0 || drillLevel !== 'category') && (
+            <button
+              onClick={handleResetAll}
+              className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+            >
+              Reset All
+            </button>
           )}
         </div>
-        {hiddenCategories.size > 0 && (
-          <button
-            onClick={handleResetAll}
-            className="px-3 py-1.5 text-sm bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
-          >
-            Reset All
-          </button>
-        )}
       </div>
 
       {/* Pie Chart */}
-      <ResponsiveContainer width="100%" height={350}>
-        <PieChart>
-          <Pie
-            data={displayData}
-            cx="50%"
-            cy="45%"
-            label={renderLabel}
-            labelLine={false}
-            outerRadius={90}
-            fill="#8884d8"
-            dataKey="value"
-            onClick={handlePieClick}
-            onMouseEnter={(_, index) => setActiveIndex(index)}
-            onMouseLeave={() => setActiveIndex(null)}
-            {...(activeIndex !== null && { activeShape: renderActiveShape })}
-            style={{ cursor: showingSubcategories ? 'default' : 'pointer', fontSize: '13.5px' }}
-          >
-            {displayData.map((entry, index) => (
-              <Cell key={`cell-${index}`} fill={entry.color} />
-            ))}
-          </Pie>
-          <Tooltip 
-            formatter={(value: any) => {
-              const totalMinutes = value;
-              const hours = Math.floor(totalMinutes / 60);
-              const minutes = totalMinutes % 60;
-              return `${hours}:${minutes.toString().padStart(2, '0')}`;
-            }}
-          />
-        </PieChart>
-      </ResponsiveContainer>
-
-      {/* Custom Legend for Categories */}
-      {!showingSubcategories && categoryData.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {categoryData.map((entry, index) => (
-            <div key={index} className="flex items-center gap-2 text-sm">
-              <div 
-                className="w-3 h-3 rounded-sm flex-shrink-0"
-                style={{ backgroundColor: entry.color }}
+      {displayData.length > 0 ? (
+        <>
+          <ResponsiveContainer width="100%" height={350}>
+            <PieChart>
+              <Pie
+                data={displayData}
+                cx="50%"
+                cy="45%"
+                label={renderLabel}
+                labelLine={false}
+                outerRadius={90}
+                fill="#8884d8"
+                dataKey="value"
+                onClick={handlePieClick}
+                onMouseEnter={(_, index) => setActiveIndex(index)}
+                onMouseLeave={() => setActiveIndex(null)}
+                {...(activeIndex !== null && { activeShape: renderActiveShape })}
+                style={{ cursor: drillLevel === 'activity' ? 'default' : 'pointer', fontSize: '13.5px' }}
+              >
+                {displayData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Pie>
+              <Tooltip 
+                formatter={(value: any) => {
+                  const totalMinutes = value;
+                  const hours = Math.floor(totalMinutes / 60);
+                  const minutes = totalMinutes % 60;
+                  return `${hours}:${minutes.toString().padStart(2, '0')}`;
+                }}
               />
-              <span className="text-gray-700">
-                {entry.name}
-              </span>
-            </div>
-          ))}
+            </PieChart>
+          </ResponsiveContainer>
+
+          {/* Legend */}
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {displayData.map((entry, index) => {
+              const displayName = drillLevel === 'activity' 
+                ? entry.name.split(' ').slice(0, 3).join(' ')
+                : entry.name;
+              
+              return (
+                <div key={index} className="flex items-center gap-2 text-sm">
+                  <div 
+                    className="w-3 h-3 rounded-sm flex-shrink-0"
+                    style={{ backgroundColor: entry.color }}
+                  />
+                  <span className="text-gray-700 truncate">
+                    {displayName}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      ) : (
+        <div className="flex items-center justify-center h-[350px] text-gray-500">
+          No data to display at this level
         </div>
       )}
 
-      {/* Custom Legend for Subcategories */}
-      {showingSubcategories && displayData.length > 0 && (
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          {displayData.map((entry, index) => {
-            const words = entry.name.split(' ');
-            const displayName = words.slice(0, 3).join(' ');
-            return (
-              <div key={index} className="flex items-center gap-2 text-sm">
-                <div 
-                  className="w-3 h-3 rounded-sm flex-shrink-0"
-                  style={{ backgroundColor: entry.color }}
-                />
-                <span className="text-gray-700 truncate">
-                  {displayName}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Subcategory info */}
-      {showingSubcategories && (
+      {/* Info messages */}
+      {drillLevel === 'subcategory' && (
         <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
-          📊 Showing individual activities within this category. Reset to view all categories.
+          📊 Showing subcategories within {drilldownCategory}. Click a slice to hide it.
+        </div>
+      )}
+      
+      {drillLevel === 'activity' && (
+        <div className="mt-4 bg-blue-50 border border-blue-200 rounded-lg p-3 text-sm text-blue-700">
+          📊 Showing individual activities. Use navigation buttons to go back.
         </div>
       )}
 
-      {/* Click instruction */}
-      {!showingSubcategories && categoryData.length > 1 && (
+      {drillLevel === 'category' && displayData.length > 1 && (
         <div className="mt-4 text-center text-sm text-gray-600">
           💡 Click on any category slice to hide it from the chart
         </div>
       )}
 
-      {/* Category toggle controls */}
-      {!showingSubcategories && categoryData.length > 0 && (
+      {/* Category visibility controls */}
+      {drillLevel === 'category' && getCategoryData().length > 0 && (
         <div className="mt-6 pt-4 border-t border-gray-200">
           <h4 className="text-sm font-medium text-gray-700 mb-3">Category Visibility</h4>
           <div className="flex flex-wrap gap-2">
-            {categoryData.map((cat) => {
+            {getCategoryData().map((cat) => {
               const isHidden = hiddenCategories.has(cat.category || '');
               return (
                 <button
@@ -323,6 +451,35 @@ const InteractivePieChart = ({ activities, categories }: InteractivePieChartProp
                 >
                   {isHidden ? <EyeOff size={14} /> : <Eye size={14} />}
                   <span>{cat.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Subcategory visibility controls */}
+      {drillLevel === 'subcategory' && drilldownCategory && (
+        <div className="mt-6 pt-4 border-t border-gray-200">
+          <h4 className="text-sm font-medium text-gray-700 mb-3">Subcategory Visibility</h4>
+          <div className="flex flex-wrap gap-2">
+            {getSubcategoryData(drilldownCategory).map((sub) => {
+              const isHidden = hiddenSubcategories.has(sub.subcategory || '');
+              return (
+                <button
+                  key={sub.subcategory}
+                  onClick={() => handleToggleSubcategory(sub.subcategory || '')}
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all ${
+                    isHidden
+                      ? 'bg-gray-200 text-gray-500 hover:bg-gray-300'
+                      : 'text-white hover:opacity-90'
+                  }`}
+                  style={{
+                    backgroundColor: isHidden ? undefined : sub.color
+                  }}
+                >
+                  {isHidden ? <EyeOff size={14} /> : <Eye size={14} />}
+                  <span>{sub.name}</span>
                 </button>
               );
             })}

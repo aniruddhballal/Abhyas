@@ -6,6 +6,7 @@ export interface Activity {
   timestamp: string;
   completed: boolean;
   category?: string;
+  subcategory?: string;
   duration?: number;
   startTime?: string; // Add this
   endTime?: string; // Add this
