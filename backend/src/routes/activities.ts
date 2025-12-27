@@ -21,20 +21,62 @@ router.get('/:date', async (req, res) => {
   }
 });
 
-// Get all categories
+// Get all categories with subcategories
 router.get('/meta/categories', (_req, res) => {
-  res.json({
-    categories: Object.values(ActivityCategory).map(cat => ({
-      value: cat,
-      label: cat.charAt(0).toUpperCase() + cat.slice(1)
-    }))
-  });
+  const categoriesWithSubcategories = [
+    { 
+      value: 'meal', 
+      label: 'Meal',
+      subcategories: ['breakfast', 'lunch', 'snacks', 'dinner']
+    },
+    { 
+      value: 'sleep', 
+      label: 'Sleep'
+    },
+    { 
+      value: 'japa', 
+      label: 'Japa'
+    },
+    { 
+      value: 'exercise', 
+      label: 'Exercise',
+      subcategories: ['calisthenics', 'walk', 'cycle', 'run', 'swim']
+    },
+    { 
+      value: 'commute', 
+      label: 'Commute',
+      subcategories: ['metro', 'bus', 'auto', 'bike']
+    },
+    { 
+      value: 'cinema', 
+      label: 'Cinema',
+      subcategories: ['watching', 'reviewing', 'analysing']
+    },
+    { 
+      value: 'reading', 
+      label: 'Reading'
+    },
+    { 
+      value: 'research', 
+      label: 'Research'
+    },
+    { 
+      value: 'writing', 
+      label: 'Writing'
+    },
+    { 
+      value: 'project', 
+      label: 'Project'
+    }
+  ];
+
+  res.json({ categories: categoriesWithSubcategories });
 });
 
 // Add a new activity (only for today's date in IST)
 router.post('/', async (req, res) => {
   try {
-    const { date, category, title, description, duration, startTime, endTime } = req.body;
+    const { date, category, subcategory, title, description, duration, startTime, endTime } = req.body;
     
     // Validate that the date is today IN IST TIMEZONE
     const today = new Date().toLocaleDateString('en-CA', { 
@@ -67,6 +109,7 @@ router.post('/', async (req, res) => {
     const newActivity = new Activity({
       date,
       category,
+      subcategory: subcategory || undefined, // Include if provided
       title,
       description: description || '',
       duration: Number(duration),
@@ -86,7 +129,7 @@ router.post('/', async (req, res) => {
 router.put('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const { category, title, description, duration, startTime, endTime } = req.body;
+    const { category, subcategory, title, description, duration, startTime, endTime } = req.body;
     
     // Find the activity first
     const activity = await Activity.findById(id);
@@ -102,6 +145,7 @@ router.put('/:id', async (req, res) => {
     
     // Update fields
     if (category) activity.category = category;
+    if (subcategory !== undefined) activity.subcategory = subcategory;
     if (title) activity.title = title;
     if (description !== undefined) activity.description = description;
     if (duration) activity.duration = Number(duration);

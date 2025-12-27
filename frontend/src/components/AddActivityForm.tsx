@@ -5,6 +5,7 @@ import type { CreateActivityData } from '../types/activity';
 interface Category {
   value: string;
   label: string;
+  subcategories?: string[];
 }
 
 interface AddActivityFormProps {
@@ -13,8 +14,10 @@ interface AddActivityFormProps {
 
 const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) => {
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     category: '',
+    subcategory: '',
     title: '',
     duration: '',
     startTime: '',
@@ -53,6 +56,18 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
       }
     }
   }, [formData.startTime, formData.endTime, durationMode, today]);
+
+  // Update subcategories when category changes
+  useEffect(() => {
+    const selectedCategory = categories.find(cat => cat.value === formData.category);
+    if (selectedCategory?.subcategories) {
+      setSubcategories(selectedCategory.subcategories);
+    } else {
+      setSubcategories([]);
+      // Clear subcategory if the new category doesn't have subcategories
+      setFormData(prev => ({ ...prev, subcategory: '' }));
+    }
+  }, [formData.category, categories]);
 
   const fetchCategories = async () => {
     try {
@@ -99,6 +114,8 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
         title: formData.title,
         duration: durationInMinutes,
         description: formData.description,
+        // Include subcategory if provided
+        ...(formData.subcategory && { subcategory: formData.subcategory }),
         // Include start/end times if they were entered
         ...(formData.startTime && { startTime: formData.startTime }),
         ...(formData.endTime && { endTime: formData.endTime })
@@ -108,6 +125,7 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
 
       setFormData({
         category: '',
+        subcategory: '',
         title: '',
         duration: '',
         startTime: '',
@@ -177,6 +195,29 @@ const AddActivityForm: React.FC<AddActivityFormProps> = ({ onActivityAdded }) =>
             ))}
           </select>
         </div>
+
+        {subcategories.length > 0 && (
+          <div>
+            <label htmlFor="subcategory" className="block text-sm font-medium text-gray-700 mb-1">
+              Subcategory *
+            </label>
+            <select
+              id="subcategory"
+              name="subcategory"
+              value={formData.subcategory}
+              onChange={handleChange}
+              required
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+            >
+              <option value="">Select a subcategory</option>
+              {subcategories.map(sub => (
+                <option key={sub} value={sub}>
+                  {sub.charAt(0).toUpperCase() + sub.slice(1)}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         <div>
           <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
